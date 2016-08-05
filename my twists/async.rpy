@@ -8,9 +8,12 @@ class DelayedResource(Resource):
         request.write("Sorry to keep you waiting.")
         request.finish()
 
+    def _responseFailed(self, err, call):
+        call.cancel()
+
     def render_GET(self, request):
-        d = deferLater(reactor, 5, lambda: request)
-        d.addCallback(self._delayedRender)
+        call = reactor.callLater(5, self._delayedRender, request)
+        request.notifyFinish().addErrback(self._responseFailed, call)
         return NOT_DONE_YET
 
 resource = DelayedResource()
